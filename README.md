@@ -9,7 +9,7 @@ This is the backend service for Group 17's app, built with Spring Boot and micro
 - MySQL / PostgreSQL
 
 ## Team Roles
-- 3 Frontend Developers
+- 3 Backend Developers (including DB mgmt, API mgmt and Security)
 - Project Manager
 
 ## TODO
