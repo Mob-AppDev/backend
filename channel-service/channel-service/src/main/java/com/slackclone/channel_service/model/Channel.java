@@ -17,6 +17,6 @@ public class Channel {
 
     private String description;
 
-    private Long createdByUserId; // To link to user-service
+    private Long createdByUserId;
 }
 

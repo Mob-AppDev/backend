@@ -1,12 +1,15 @@
 package com.slackclone.channel_service.client;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "user-service", url = "http://localhost:8080") // change URL to your user-service port
+@FeignClient(name = "user-service", url = "http://localhost:8081")
 public interface UserClient {
 
-    @GetMapping("/api/users/{id}")
-    Object getUserById(@PathVariable Long id);
+    @GetMapping("/hello")
+    String sayHelloFromUserService();
+
+    void getUserById(@NotNull(message = "createdByUserId is required") Long createdByUserId);
 }
+
