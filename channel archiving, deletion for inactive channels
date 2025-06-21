@@ -1,0 +1,178 @@
+// Import statements
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+import javax.persistence.*;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Enum representing the status of a channel.
+ */
+public enum ChannelStatus {
+    ACTIVE,
+    ARCHIVED,
+    MARKED_FOR_DELETION
+}
+
+/**
+ * Entity representing a messaging channel.
+ */
+@Entity
+public class Channel {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    /**
+     * Timestamp of the last activity in the channel.
+     */
+    private LocalDateTime lastActivity;
+
+    /**
+     * Status of the channel: active, archived, or marked for deletion.
+     */
+    @Enumerated(EnumType.STRING)
+    private ChannelStatus status; // Default status could be ACTIVE
+
+    // Constructors, getters, and setters
+
+    public Channel() {
+        // Default constructor
+    }
+
+    public Channel(String name, LocalDateTime lastActivity, ChannelStatus status) {
+        this.name = name;
+        this.lastActivity = lastActivity;
+        this.status = status;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public LocalDateTime getLastActivity() {
+        return lastActivity;
+    }
+
+    public void setLastActivity(LocalDateTime lastActivity) {
+        this.lastActivity = lastActivity;
+    }
+
+    public ChannelStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ChannelStatus status) {
+        this.status = status;
+    }
+}
+
+/**
+ * Repository interface for Channel entity.
+ * Provides basic CRUD operations and custom query method.
+ */
+public interface ChannelRepository extends JpaRepository<Channel, Long> {
+    /**
+     * Find all channels with a given status.
+     */
+    List<Channel> findByStatus(ChannelStatus status);
+}
+
+/**
+ * Service class encapsulating business logic for channel management,
+ * including archiving inactive channels and scheduled deletion.
+ */
+@Service
+public class ChannelService {
+
+    @Autowired
+    private ChannelRepository channelRepository;
+
+    /**
+     * Identifies active channels inactive beyond the specified threshold
+     * and marks them for deletion.
+     *
+     * @param inactivityThreshold Duration of inactivity to consider.
+     */
+    public void markInactiveChannelsForDeletion(Duration inactivityThreshold) {
+        LocalDateTime cutoffTime = LocalDateTime.now().minus(inactivityThreshold);
+
+        // Fetch all channels and filter for inactive ones based on last activity
+        List<Channel> inactiveChannels = channelRepository.findAll().stream()
+                .filter(c -> c.getStatus() == ChannelStatus.ACTIVE && c.getLastActivity().isBefore(cutoffTime))
+                .collect(Collectors.toList());
+
+        // Mark each inactive channel for deletion
+        inactiveChannels.forEach(c -> c.setStatus(ChannelStatus.MARKED_FOR_DELETION));
+
+        // Save the updated channels back to the database
+        channelRepository.saveAll(inactiveChannels);
+    }
+
+    /**
+     * Permanently deletes channels that have been marked for deletion.
+     */
+    public void deleteMarkedChannels() {
+        // Find all channels with status MARKED_FOR_DELETION
+        List<Channel> markedChannels = channelRepository.findByStatus(ChannelStatus.MARKED_FOR_DELETION);
+
+        // Delete the marked channels from the database
+        channelRepository.deleteAll(markedChannels);
+    }
+}
+
+/**
+ * Configuration class to enable scheduling in Spring.
+ */
+@Configuration
+@EnableScheduling
+public class SchedulingConfig {
+    // This class enables scheduling; no additional code needed here
+}
+
+/**
+ * Component class containing scheduled tasks to periodically
+ * perform channel archiving and deletion.
+ */
+@Component
+public class ScheduledTasks {
+
+    @Autowired
+    private ChannelService channelService;
+
+    /**
+     * Runs daily at midnight to find and mark inactive channels for deletion.
+     */
+    @Scheduled(cron = "0 0 0 * * *") // every day at 00:00
+    public void markInactiveChannels() {
+        // Define inactivity threshold (e.g., 30 days)
+        Duration inactivityThreshold = Duration.ofDays(30);
+        channelService.markInactiveChannelsForDeletion(inactivityThreshold);
+    }
+
+    /**
+     * Runs weekly on Sunday at 3 AM to delete channels marked for deletion.
+     */
+    @Scheduled(cron = "0 0 3 * * SUN") // weekly on Sunday at 03:00
+    public void deleteChannels() {
+        channelService.deleteMarkedChannels();
+    }
+}
