@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,15 +24,17 @@ public class ChannelService {
 
     public Channel createChannel(ChannelRequest request) {
         try {
-            userClient.getUserById(request.getCreatedByUserId());
+            userClient.getUserById(request.getCreatedBy().longValue());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
         }
 
         Channel channel = new Channel();
         channel.setName(request.getName());
-        channel.setDescription(request.getDescription());
-        channel.setCreatedByUserId(request.getCreatedByUserId());
+        channel.setIsPrivate(request.getIsPrivate());
+        channel.setCreatedBy(request.getCreatedBy());
+        channel.setCreatedAt(LocalDateTime.now());
+        channel.setArchived(false);
         return repository.save(channel);
     }
 
@@ -40,8 +43,8 @@ public class ChannelService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
 
         channel.setName(request.getName());
-        channel.setDescription(request.getDescription());
-        channel.setCreatedByUserId(request.getCreatedByUserId());
+        channel.setIsPrivate(request.getIsPrivate());
+        channel.setCreatedBy(request.getCreatedBy());
         return repository.save(channel);
     }
 
@@ -60,5 +63,13 @@ public class ChannelService {
     public Channel getChannelById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+    }
+
+    public Channel archiveChannel(Long id) {
+        Channel channel = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+        channel.setArchived(true);
+        channel.setArchivedAt(LocalDateTime.now());
+        return repository.save(channel);
     }
 }

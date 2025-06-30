@@ -10,8 +10,9 @@ public class ChannelRequest {
     @NotBlank(message = "Channel name is required")
     private String name;
 
-    private String description;
+    private Boolean isPrivate = false;
 
-    @NotNull(message = "createdByUserId is required")
-    private Long createdByUserId;
+    @NotNull(message = "createdBy is required")
+    private Integer createdBy;
 }
+

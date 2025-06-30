@@ -9,10 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.slackclone.channel_service.client.UserClient;
 
-
 import java.util.List;
 import java.util.stream.Collectors;
-import com.slackclone.channel_service.client.UserClient;
 
 @RestController
 @RequestMapping("/api/channels")
@@ -54,14 +52,26 @@ public class ChannelController {
         service.deleteChannel(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<ChannelResponse> archiveChannel(@PathVariable Long id) {
+        Channel archived = service.archiveChannel(id);
+        return ResponseEntity.ok(toResponse(archived));
+    }
+
     @GetMapping("/hello-from-user")
     public String getHelloFromUserService() {
         return userClient.sayHelloFromUserService();
     }
 
-
     private ChannelResponse toResponse(Channel c) {
-        return new ChannelResponse(c.getId(), c.getName(), c.getDescription(), c.getCreatedByUserId());
+        return new ChannelResponse(
+                c.getId(),
+                c.getName(),
+                c.getIsPrivate(),
+                c.getCreatedBy(),
+                c.getArchived(),
+                c.getArchivedAt()
+        );
     }
 }
-

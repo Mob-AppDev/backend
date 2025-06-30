@@ -2,15 +2,16 @@ package com.slackclone.channel_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 public class ChannelResponse {
-    private Long id;
+    private Integer id;
     private String name;
-    private String description;
-    private Long createdByUserId;
+    private Boolean isPrivate;
+    private Integer createdBy;
+    private Boolean archived;
+    private LocalDateTime archivedAt;
 }
-
